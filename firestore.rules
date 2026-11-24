@@ -1,0 +1,373 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Primitive Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 2 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email in ['ghaniskit2024@gmail.com', 'osmanasma201222@gmail.com'] ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // 3. Entity Validation Blueprints
+    function isValidCourse(data) {
+      return data.keys().hasAll([
+          'code', 'title', 'category', 'categoryLabel',
+          'durationWeeks', 'totalClasses', 'fee', 'summary',
+          'syllabus', 'imageUrl', 'active'
+        ])
+        && data.keys().hasOnly([
+          'code', 'title', 'category', 'categoryLabel',
+          'durationWeeks', 'totalClasses', 'fee', 'summary',
+          'syllabus', 'imageUrl', 'active'
+        ])
+        && data.code is string && data.code.size() >= 2 && data.code.size() <= 24
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 160
+        && data.category in ['tech', 'creative', 'career', 'paid']
+        && data.categoryLabel is string && data.categoryLabel.size() >= 2 && data.categoryLabel.size() <= 80
+        && data.durationWeeks is number && data.durationWeeks >= 1 && data.durationWeeks <= 200
+        && data.totalClasses is number && data.totalClasses >= 1 && data.totalClasses <= 500
+        && data.fee is number && data.fee >= 0 && data.fee <= 500000
+        && data.summary is string && data.summary.size() <= 600
+        && data.syllabus is list && data.syllabus.size() > 0 && data.syllabus.size() <= 20
+        && data.syllabus[0] is string && data.syllabus[0].size() <= 240
+        && data.imageUrl is string && data.imageUrl.size() <= 300
+        && data.active is bool;
+    }
+
+    function isValidInstructorPublic(data) {
+      return data.keys().hasAll(['name', 'designation', 'specialty', 'experienceYears', 'active'])
+        && data.keys().hasOnly(['name', 'designation', 'specialty', 'experienceYears', 'active'])
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 120
+        && data.designation is string && data.designation.size() <= 120
+        && data.specialty is string && data.specialty.size() <= 200
+        && data.experienceYears is number && data.experienceYears >= 0 && data.experienceYears <= 60
+        && data.active is bool;
+    }
+
+    function isValidInstructorPrivate(data) {
+      return data.keys().hasAll(['phone', 'email'])
+        && data.keys().hasOnly(['phone', 'email'])
+        && data.phone is string && data.phone.size() <= 30
+        && data.email is string && data.email.size() <= 120;
+    }
+
+    function isValidBatch(data) {
+      return data.keys().hasAll([
+          'code', 'courseId', 'instructorId', 'schedule',
+          'room', 'startDate', 'capacity', 'enrolledCount', 'status'
+        ])
+        && data.keys().hasOnly([
+          'code', 'courseId', 'instructorId', 'schedule',
+          'room', 'startDate', 'capacity', 'enrolledCount', 'status'
+        ])
+        && data.code is string && data.code.size() >= 2 && data.code.size() <= 32
+        && isValidId(data.courseId)
+        && isValidId(data.instructorId)
+        && data.schedule is string && data.schedule.size() <= 160
+        && data.room is string && data.room.size() <= 100
+        && data.startDate is string && data.startDate.size() <= 30
+        && data.capacity is number && data.capacity >= 1 && data.capacity <= 500
+        && data.enrolledCount is number && data.enrolledCount >= 0 && data.enrolledCount <= 500
+        && data.status in ['চলমান', 'ভর্তি চলছে', 'সম্পন্ন'];
+    }
+
+    function isValidStudent(data) {
+      return data.keys().hasAll([
+          'studentCode', 'name', 'phone', 'email', 'address',
+          'courseId', 'batchId', 'enrolledDate', 'totalFee',
+          'discount', 'paidAmount', 'status'
+        ])
+        && data.keys().hasOnly([
+          'studentCode', 'name', 'phone', 'email', 'address',
+          'courseId', 'batchId', 'enrolledDate', 'totalFee',
+          'discount', 'paidAmount', 'status', 'guardianName', 'guardianPhone'
+        ])
+        && data.studentCode is string && data.studentCode.size() >= 2 && data.studentCode.size() <= 32
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 120
+        && data.phone is string && data.phone.size() >= 6 && data.phone.size() <= 30
+        && data.email is string && data.email.size() <= 120
+        && data.address is string && data.address.size() <= 240
+        && isValidId(data.courseId)
+        && isValidId(data.batchId)
+        && data.enrolledDate is string && data.enrolledDate.size() <= 30
+        && data.totalFee is number && data.totalFee >= 0 && data.totalFee <= 500000
+        && data.discount is number && data.discount >= 0 && data.discount <= 500000
+        && data.paidAmount is number && data.paidAmount >= 0 && data.paidAmount <= 500000
+        && data.status in ['সক্রিয়', 'সম্পন্ন', 'বিরতি']
+        && (!('guardianName' in data) || (data.guardianName is string && data.guardianName.size() <= 120))
+        && (!('guardianPhone' in data) || (data.guardianPhone is string && data.guardianPhone.size() <= 30));
+    }
+
+    function isValidPayment(data) {
+      return data.keys().hasAll(['receiptNo', 'studentId', 'amount', 'method', 'reference', 'date', 'note'])
+        && data.keys().hasOnly(['receiptNo', 'studentId', 'amount', 'method', 'reference', 'date', 'note', 'billingMonth', 'studentEmail'])
+        && data.receiptNo is string && data.receiptNo.size() >= 2 && data.receiptNo.size() <= 40
+        && isValidId(data.studentId)
+        && data.amount is number && data.amount > 0 && data.amount <= 500000
+        && data.method in ['বিকাশ', 'নগদ', 'ব্যাংক ট্রান্সফার', 'নগদ ক্যাশ']
+        && data.reference is string && data.reference.size() <= 80
+        && data.date is string && data.date.size() <= 30
+        && data.note is string && data.note.size() <= 200
+        && (!('billingMonth' in data) || (data.billingMonth is string && data.billingMonth.size() <= 20))
+        && (!('studentEmail' in data) || (data.studentEmail is string && data.studentEmail.size() <= 120));
+    }
+
+    function isValidAttendance(data) {
+      return data.keys().hasAll(['batchId', 'date', 'entries'])
+        && data.keys().hasOnly(['batchId', 'date', 'entries', 'studentEmails'])
+        && isValidId(data.batchId)
+        && data.date is string && data.date.size() >= 8 && data.date.size() <= 30
+        && data.entries is map && data.entries.size() <= 200
+        && (
+          !('studentEmails' in data) ||
+          (
+            data.studentEmails is list &&
+            data.studentEmails.size() <= 200 &&
+            (data.studentEmails.size() == 0 || (data.studentEmails[0] is string && data.studentEmails[0].size() <= 120))
+          )
+        );
+    }
+
+    function isValidExam(data) {
+      return data.keys().hasAll(['title', 'batchId', 'courseId', 'examDate', 'totalMarks', 'passMarks', 'scores', 'createdAt'])
+        && data.keys().hasOnly(['title', 'batchId', 'courseId', 'examDate', 'totalMarks', 'passMarks', 'scores', 'createdAt', 'studentEmails'])
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 160
+        && isValidId(data.batchId)
+        && isValidId(data.courseId)
+        && data.examDate is string && data.examDate.size() >= 8 && data.examDate.size() <= 30
+        && data.totalMarks is number && data.totalMarks >= 1 && data.totalMarks <= 1000
+        && data.passMarks is number && data.passMarks >= 0 && data.passMarks <= 1000
+        && data.scores is map && data.scores.size() <= 200
+        && data.createdAt is string && data.createdAt.size() <= 30
+        && (
+          !('studentEmails' in data) ||
+          (
+            data.studentEmails is list &&
+            data.studentEmails.size() <= 200 &&
+            (data.studentEmails.size() == 0 || (data.studentEmails[0] is string && data.studentEmails[0].size() <= 120))
+          )
+        );
+    }
+
+    function isValidSmsLog(data) {
+      return data.keys().hasAll(['studentId', 'studentName', 'guardianPhone', 'category', 'message', 'sentAt', 'channel'])
+        && data.keys().hasOnly(['studentId', 'studentName', 'guardianPhone', 'category', 'message', 'sentAt', 'channel', 'studentEmail'])
+        && data.studentId is string && data.studentId.size() <= 128
+        && data.studentName is string && data.studentName.size() >= 2 && data.studentName.size() <= 120
+        && data.guardianPhone is string && data.guardianPhone.size() >= 6 && data.guardianPhone.size() <= 30
+        && data.category in ['হাজিরা', 'বেতন ও বকেয়া', 'পরীক্ষা ও রেজাল্ট', 'সাধারণ নোটিশ']
+        && data.message is string && data.message.size() >= 2 && data.message.size() <= 500
+        && data.sentAt is string && data.sentAt.size() >= 8 && data.sentAt.size() <= 40
+        && data.channel in ['ডিভাইস SMS', 'গেটওয়ে প্রস্তুত / লগ']
+        && (!('studentEmail' in data) || (data.studentEmail is string && data.studentEmail.size() <= 120));
+    }
+
+    function isValidInquiry(data) {
+      return data.keys().hasAll(['name', 'phone', 'email', 'courseId', 'preferredSlot', 'message', 'submittedAt', 'createdAt', 'status'])
+        && data.keys().hasOnly(['name', 'phone', 'email', 'courseId', 'preferredSlot', 'message', 'submittedAt', 'createdAt', 'status'])
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 120
+        && data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 30
+        && data.email is string && data.email.size() <= 120
+        && isValidId(data.courseId)
+        && data.preferredSlot is string && data.preferredSlot.size() <= 100
+        && data.message is string && data.message.size() <= 600
+        && data.submittedAt is string && data.submittedAt.size() <= 30
+        && data.createdAt is timestamp
+        && data.status in ['অপেক্ষমাণ', 'যোগাযোগ করা হয়েছে', 'ভর্তি সম্পন্ন', 'বাতিল'];
+    }
+
+    function isValidCertificate(data) {
+      return data.keys().hasAll(['certificateId', 'studentName', 'studentCode', 'courseTitle', 'batchCode', 'grade', 'issueDate'])
+        && data.keys().hasOnly(['certificateId', 'studentName', 'studentCode', 'courseTitle', 'batchCode', 'grade', 'issueDate'])
+        && isValidId(data.certificateId)
+        && data.studentName is string && data.studentName.size() >= 2 && data.studentName.size() <= 120
+        && data.studentCode is string && data.studentCode.size() >= 2 && data.studentCode.size() <= 40
+        && data.courseTitle is string && data.courseTitle.size() >= 2 && data.courseTitle.size() <= 180
+        && data.batchCode is string && data.batchCode.size() >= 2 && data.batchCode.size() <= 40
+        && data.grade is string && data.grade.size() <= 40
+        && data.issueDate is string && data.issueDate.size() <= 30;
+    }
+
+    function isValidAdmin(data) {
+      return data.keys().hasAll(['email', 'role', 'addedAt'])
+        && data.keys().hasOnly(['email', 'role', 'addedAt'])
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 120
+        && data.role == 'admin'
+        && data.addedAt is string && data.addedAt.size() <= 40;
+    }
+
+    // 4. Collection Rules
+    match /courses/{courseId} {
+      allow get: if isValidId(courseId);
+      allow list: if true;
+      allow create, update: if isAdmin() && isValidId(courseId) && isValidCourse(incoming());
+      allow delete: if isAdmin() && isValidId(courseId);
+    }
+
+    match /instructors/{instructorId} {
+      allow get: if isValidId(instructorId);
+      allow list: if true;
+      allow create, update: if isAdmin() && isValidId(instructorId) && isValidInstructorPublic(incoming());
+      allow delete: if isAdmin() && isValidId(instructorId);
+
+      match /private/{docId} {
+        allow get, list: if isAdmin();
+        allow create, update: if isAdmin() && isValidId(instructorId) && isValidId(docId) && isValidInstructorPrivate(incoming());
+        allow delete: if isAdmin() && isValidId(instructorId) && isValidId(docId);
+      }
+    }
+
+    match /batches/{batchId} {
+      allow get: if isValidId(batchId);
+      allow list: if true;
+      allow create: if isAdmin()
+        && isValidId(batchId)
+        && isValidBatch(incoming())
+        && existsAfter(/databases/$(database)/documents/courses/$(incoming().courseId))
+        && existsAfter(/databases/$(database)/documents/instructors/$(incoming().instructorId));
+      allow update: if isAdmin()
+        && isValidId(batchId)
+        && isValidBatch(incoming())
+        && exists(/databases/$(database)/documents/courses/$(incoming().courseId))
+        && exists(/databases/$(database)/documents/instructors/$(incoming().instructorId));
+      allow delete: if isAdmin() && isValidId(batchId);
+    }
+
+    match /students/{studentId} {
+      allow get, list: if isAdmin() || (isVerifiedUser() && existing().email == request.auth.token.email);
+      allow create: if isAdmin()
+        && isValidId(studentId)
+        && isValidStudent(incoming())
+        && existsAfter(/databases/$(database)/documents/courses/$(incoming().courseId))
+        && existsAfter(/databases/$(database)/documents/batches/$(incoming().batchId));
+      allow update: if isAdmin()
+        && isValidId(studentId)
+        && isValidStudent(incoming())
+        && incoming().studentCode == existing().studentCode
+        && incoming().enrolledDate == existing().enrolledDate;
+      allow delete: if isAdmin() && isValidId(studentId);
+    }
+
+    match /payments/{paymentId} {
+      allow get, list: if isAdmin() || (
+        isVerifiedUser() &&
+        'studentEmail' in existing() &&
+        existing().studentEmail == request.auth.token.email
+      );
+      allow create: if isAdmin()
+        && isValidId(paymentId)
+        && isValidPayment(incoming())
+        && existsAfter(/databases/$(database)/documents/students/$(incoming().studentId));
+      allow update: if isAdmin()
+        && isValidId(paymentId)
+        && isValidPayment(incoming())
+        && incoming().receiptNo == existing().receiptNo
+        && incoming().studentId == existing().studentId;
+      allow delete: if isAdmin() && isValidId(paymentId);
+    }
+
+    match /attendance/{attendanceId} {
+      allow get, list: if isAdmin() || (
+        isVerifiedUser() &&
+        'studentEmails' in existing() &&
+        request.auth.token.email in existing().studentEmails
+      );
+      allow create, update: if isAdmin()
+        && isValidId(attendanceId)
+        && isValidAttendance(incoming())
+        && existsAfter(/databases/$(database)/documents/batches/$(incoming().batchId));
+      allow delete: if isAdmin() && isValidId(attendanceId);
+    }
+
+    match /exams/{examId} {
+      allow get, list: if isAdmin() || (
+        isVerifiedUser() &&
+        'studentEmails' in existing() &&
+        request.auth.token.email in existing().studentEmails
+      );
+      allow create: if isAdmin()
+        && isValidId(examId)
+        && isValidExam(incoming())
+        && existsAfter(/databases/$(database)/documents/batches/$(incoming().batchId))
+        && existsAfter(/databases/$(database)/documents/courses/$(incoming().courseId));
+      allow update: if isAdmin()
+        && isValidId(examId)
+        && isValidExam(incoming())
+        && incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin() && isValidId(examId);
+    }
+
+    match /smsLogs/{smsId} {
+      allow get, list: if isAdmin() || (
+        isVerifiedUser() &&
+        'studentEmail' in existing() &&
+        existing().studentEmail == request.auth.token.email
+      );
+      allow create: if isAdmin()
+        && isValidId(smsId)
+        && isValidSmsLog(incoming());
+      allow delete: if isAdmin() && isValidId(smsId);
+    }
+
+    match /inquiries/{inquiryId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(inquiryId)
+        && isValidInquiry(incoming())
+        && incoming().status == 'অপেক্ষমাণ'
+        && incoming().createdAt == request.time
+        && (
+          exists(/databases/$(database)/documents/courses/$(incoming().courseId)) ||
+          incoming().courseId in ['crs-1', 'crs-2', 'crs-3', 'crs-4', 'crs-5', 'crs-6', 'crs-7', 'crs-8', 'crs-9']
+        );
+      allow update: if isAdmin()
+        && isValidId(inquiryId)
+        && isValidInquiry(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'name', 'phone', 'email', 'courseId', 'preferredSlot', 'message']);
+      allow delete: if isAdmin() && isValidId(inquiryId);
+    }
+
+    match /certificates/{certificateId} {
+      allow get: if isValidId(certificateId);
+      allow list: if isAdmin();
+      allow create, update: if isAdmin()
+        && isValidId(certificateId)
+        && isValidCertificate(incoming())
+        && incoming().certificateId == certificateId;
+      allow delete: if isAdmin() && isValidId(certificateId);
+    }
+
+    match /admins/{adminUid} {
+      allow get: if isAdmin() || (isVerifiedUser() && request.auth.uid == adminUid);
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && isValidId(adminUid) && isValidAdmin(incoming());
+      allow delete: if isAdmin() && isValidId(adminUid);
+    }
+  }
+}

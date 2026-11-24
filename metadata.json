@@ -1,0 +1,6 @@
+{
+  "name": "প্রযুক্তিপাঠ আইটি — ট্রেনিং সেন্টার ম্যানেজমেন্ট",
+  "description": "আইটি ট্রেনিং সেন্টারের কোর্স, ব্যাচ, শিক্ষার্থী ভর্তি, উপস্থিতি, ফি আদায় ও সার্টিফিকেট যাচাইয়ের পূর্ণাঙ্গ ম্যানেজমেন্ট ওয়েবসাইট।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

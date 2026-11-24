@@ -1,0 +1,275 @@
+{
+  "entities": {
+    "Course": {
+      "title": "Course",
+      "description": "Free IT or freelancing training course offered by Dream-71 IT Service Nangalkot",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "minLength": 2, "maxLength": 24 },
+        "title": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "category": { "type": "string", "enum": ["tech", "creative", "career", "paid"] },
+        "categoryLabel": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "durationWeeks": { "type": "number" },
+        "totalClasses": { "type": "number" },
+        "fee": { "type": "number" },
+        "summary": { "type": "string", "maxLength": 600 },
+        "syllabus": { "type": "array" },
+        "imageUrl": { "type": "string", "maxLength": 300 },
+        "active": { "type": "boolean" }
+      },
+      "required": [
+        "code",
+        "title",
+        "category",
+        "categoryLabel",
+        "durationWeeks",
+        "totalClasses",
+        "fee",
+        "summary",
+        "syllabus",
+        "imageUrl",
+        "active"
+      ]
+    },
+    "InstructorPublic": {
+      "title": "InstructorPublic",
+      "description": "Public profile of an institute instructor without contact PII",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "designation": { "type": "string", "maxLength": 120 },
+        "specialty": { "type": "string", "maxLength": 200 },
+        "experienceYears": { "type": "number" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["name", "designation", "specialty", "experienceYears", "active"]
+    },
+    "InstructorPrivate": {
+      "title": "InstructorPrivate",
+      "description": "Private contact PII for an instructor (admin only)",
+      "type": "object",
+      "properties": {
+        "phone": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 120 }
+      },
+      "required": ["phone", "email"]
+    },
+    "Batch": {
+      "title": "Batch",
+      "description": "Training batch schedule and seat capacity",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "minLength": 2, "maxLength": 32 },
+        "courseId": { "type": "string", "minLength": 2, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "instructorId": { "type": "string", "minLength": 2, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "schedule": { "type": "string", "maxLength": 160 },
+        "room": { "type": "string", "maxLength": 100 },
+        "startDate": { "type": "string", "maxLength": 30 },
+        "capacity": { "type": "number" },
+        "enrolledCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["চলমান", "ভর্তি চলছে", "সম্পন্ন"] }
+      },
+      "required": [
+        "code",
+        "courseId",
+        "instructorId",
+        "schedule",
+        "room",
+        "startDate",
+        "capacity",
+        "enrolledCount",
+        "status"
+      ]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Enrolled student record containing PII (admin only)",
+      "type": "object",
+      "properties": {
+        "studentCode": { "type": "string", "minLength": 2, "maxLength": 32 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "phone": { "type": "string", "minLength": 6, "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 120 },
+        "address": { "type": "string", "maxLength": 240 },
+        "courseId": { "type": "string", "minLength": 2, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "batchId": { "type": "string", "minLength": 2, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "enrolledDate": { "type": "string", "maxLength": 30 },
+        "totalFee": { "type": "number" },
+        "discount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["সক্রিয়", "সম্পন্ন", "বিরতি"] },
+        "guardianName": { "type": "string", "maxLength": 120 },
+        "guardianPhone": { "type": "string", "maxLength": 30 }
+      },
+      "required": [
+        "studentCode",
+        "name",
+        "phone",
+        "email",
+        "address",
+        "courseId",
+        "batchId",
+        "enrolledDate",
+        "totalFee",
+        "discount",
+        "paidAmount",
+        "status"
+      ]
+    },
+    "FeePayment": {
+      "title": "FeePayment",
+      "description": "Fee payment transaction receipt (admin only)",
+      "type": "object",
+      "properties": {
+        "receiptNo": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "studentId": { "type": "string", "minLength": 2, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "amount": { "type": "number" },
+        "method": { "type": "string", "enum": ["বিকাশ", "নগদ", "ব্যাংক ট্রান্সফার", "নগদ ক্যাশ"] },
+        "reference": { "type": "string", "maxLength": 80 },
+        "date": { "type": "string", "maxLength": 30 },
+        "note": { "type": "string", "maxLength": 200 },
+        "billingMonth": { "type": "string", "maxLength": 20 },
+        "studentEmail": { "type": "string", "maxLength": 120 }
+      },
+      "required": ["receiptNo", "studentId", "amount", "method", "reference", "date", "note"]
+    },
+    "AttendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Daily attendance sheet per batch (admin and enrolled batch students)",
+      "type": "object",
+      "properties": {
+        "batchId": { "type": "string", "minLength": 2, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "date": { "type": "string", "maxLength": 30 },
+        "entries": { "type": "object" },
+        "studentEmails": { "type": "array" }
+      },
+      "required": ["batchId", "date", "entries"]
+    },
+    "ExamRecord": {
+      "title": "ExamRecord",
+      "description": "Batch exam schedule and student marks sheet (admin and enrolled batch students)",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "batchId": { "type": "string", "minLength": 2, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "courseId": { "type": "string", "minLength": 2, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "examDate": { "type": "string", "minLength": 8, "maxLength": 30 },
+        "totalMarks": { "type": "number" },
+        "passMarks": { "type": "number" },
+        "scores": { "type": "object" },
+        "studentEmails": { "type": "array" },
+        "createdAt": { "type": "string", "maxLength": 30 }
+      },
+      "required": ["title", "batchId", "courseId", "examDate", "totalMarks", "passMarks", "scores", "createdAt"]
+    },
+    "SmsNotification": {
+      "title": "SmsNotification",
+      "description": "Guardian SMS notification dispatch log (admin and own student)",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "guardianPhone": { "type": "string", "minLength": 6, "maxLength": 30 },
+        "category": { "type": "string", "enum": ["হাজিরা", "বেতন ও বকেয়া", "পরীক্ষা ও রেজাল্ট", "সাধারণ নোটিশ"] },
+        "message": { "type": "string", "minLength": 2, "maxLength": 500 },
+        "sentAt": { "type": "string", "minLength": 8, "maxLength": 40 },
+        "channel": { "type": "string", "enum": ["ডিভাইস SMS", "গেটওয়ে প্রস্তুত / লগ"] },
+        "studentEmail": { "type": "string", "maxLength": 120 }
+      },
+      "required": ["studentId", "studentName", "guardianPhone", "category", "message", "sentAt", "channel"]
+    },
+    "AdmissionInquiry": {
+      "title": "AdmissionInquiry",
+      "description": "Public online admission inquiry submitted by prospective student",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "phone": { "type": "string", "minLength": 10, "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 120 },
+        "courseId": { "type": "string", "minLength": 2, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "preferredSlot": { "type": "string", "maxLength": 100 },
+        "message": { "type": "string", "maxLength": 600 },
+        "submittedAt": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["অপেক্ষমাণ", "যোগাযোগ করা হয়েছে", "ভর্তি সম্পন্ন", "বাতিল"] }
+      },
+      "required": ["name", "phone", "email", "courseId", "preferredSlot", "message", "submittedAt", "createdAt", "status"]
+    },
+    "CertificateRecord": {
+      "title": "CertificateRecord",
+      "description": "Issued completion certificate verifiable by ID",
+      "type": "object",
+      "properties": {
+        "certificateId": { "type": "string", "minLength": 4, "maxLength": 64, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "studentName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "studentCode": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "courseTitle": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "batchCode": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "grade": { "type": "string", "maxLength": 40 },
+        "issueDate": { "type": "string", "maxLength": 30 }
+      },
+      "required": ["certificateId", "studentName", "studentCode", "courseTitle", "batchCode", "grade", "issueDate"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized admin profile",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 120 },
+        "role": { "type": "string", "enum": ["admin"] },
+        "addedAt": { "type": "string", "maxLength": 40 }
+      },
+      "required": ["email", "role", "addedAt"]
+    }
+  },
+  "firestore": {
+    "/courses/{courseId}": {
+      "schema": { "$ref": "#/entities/Course" },
+      "description": "Publicly readable courses; admin-only writes"
+    },
+    "/instructors/{instructorId}": {
+      "schema": { "$ref": "#/entities/InstructorPublic" },
+      "description": "Publicly readable instructor profiles without contact PII"
+    },
+    "/instructors/{instructorId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/InstructorPrivate" },
+      "description": "Admin-only private contact details for instructors"
+    },
+    "/batches/{batchId}": {
+      "schema": { "$ref": "#/entities/Batch" },
+      "description": "Publicly readable batch schedule and remaining seat count; admin-only writes"
+    },
+    "/students/{studentId}": {
+      "schema": { "$ref": "#/entities/Student" },
+      "description": "Admin-only student records containing PII"
+    },
+    "/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/FeePayment" },
+      "description": "Admin-only fee payment receipts"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": { "$ref": "#/entities/AttendanceRecord" },
+      "description": "Admin-only daily batch attendance records"
+    },
+    "/exams/{examId}": {
+      "schema": { "$ref": "#/entities/ExamRecord" },
+      "description": "Admin-only batch exam scores and performance reports"
+    },
+    "/smsLogs/{smsId}": {
+      "schema": { "$ref": "#/entities/SmsNotification" },
+      "description": "Admin-only guardian SMS notification dispatch logs"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": { "$ref": "#/entities/AdmissionInquiry" },
+      "description": "Publicly creatable admission applications; admin-only read/update/delete"
+    },
+    "/certificates/{certificateId}": {
+      "schema": { "$ref": "#/entities/CertificateRecord" },
+      "description": "Single-document get by certificate ID for public verification; admin-only list and writes"
+    },
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Admin role registry"
+    }
+  }
+}
